@@ -15,6 +15,7 @@ order by location,date
 
 select * from INFORMATION_SCHEMA.COLUMNS where TABLE_NAME='CovidDeaths'
 
+-- Total Cases vs Total Deaths
 --Shows the likelihood of dying if you get Covid in India
 Select location,date,total_cases,new_cases,total_deaths,((total_deaths/total_cases)* 100)as Death_Percentage 
 from [dbo].[CovidDeaths] 
@@ -25,6 +26,7 @@ Alter table [dbo].[CovidDeaths]
 alter column total_cases decimal(20,10)
 
 --Total Cases per population 
+-- Shows what percentage of population infected with Covid
 Select location,date, total_cases,population, ((total_cases/Population)*100) as Chance_of_getting_Covid
 from CovidDeaths
 where location like '%states%'
@@ -53,19 +55,14 @@ from CovidDeaths
 group by location
 order by 4 desc
 
+-- BREAKING THINGS DOWN BY CONTINENT
 --Continents with High Death Count 
-Select location ,MAX(total_deaths) as Highest_Death_Count
+Select continent ,MAX(total_deaths) as Total_Death_Count
 from CovidDeaths
-where continent='NULL'
-group by location
-order by 2 desc
+where continent is not NULL
+group by continent
+order by Total_Death_Count desc
 
---Countries with High Death Count 
-Select location,MAX(total_deaths) as Highest_Death_Count
-from CovidDeaths
-where continent is NULL
-group by location
-order by 2 desc
 
 Select * from [dbo].[CovidDeaths] where location='World' 
 select distinct new_cases,new_deaths from CovidDeaths
@@ -81,6 +78,9 @@ order by 1,2
 
 select * from CovidVaccination
 
+-- Total Population vs Vaccinations
+-- Shows Percentage of Population that has recieved at least one Covid Vaccine
+	
 select dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations,
 sum(vac.new_vaccinations) over ( Partition by dea.location order by dea.location, dea.date) as Rolling_People_Vaccinated
 from CovidDeaths dea
@@ -93,7 +93,7 @@ order by 2,3
 select date, location, new_cases, SUM(new_cases) over ( Partition by location order by location,date) as Rolling_cases from CovidDeaths 
 select * from CovidDeaths
 
---Creating a Comman Table Expression
+--Creating a Comman Table Expression (CTE) to perform Calculation on Partition By in previous query
 With PopVsVac (Continent, location,date,population,new_vaccination, Rolling_People_Vaccinated)
 as 
 (
@@ -109,7 +109,7 @@ where dea.continent is not null
 select *, (convert(decimal,Rolling_People_Vaccinated)/Convert(decimal,Population))*100 as Percentage_Vaccinated 
 from PopVsVac
 
---Creating a Temp Table
+--Creating a Temp Table to perform Calculation on Partition By in previous query
 use [Portfolio Project]
 DROP Table if exists #Population_Vaccinated 
 Create table #Population_Vaccinated 
